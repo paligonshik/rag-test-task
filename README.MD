@@ -60,13 +60,13 @@ A simple interface is enough:
 
 ### Time Budget
 
-Please spend no more than **8 hours** on this task.
+Please spend no more than **5 hours** on this task.
 
 If you don't fully complete all ideas, that's OK. Focus on building a clear, working core and documenting trade-offs.
 
 ## Deliverables
 
-1. Code (repo) that can be run locally.
+1. Create a fork of this repo and push your decision with all required artifacts. Send link of your repo to our recruiter.
 
 2. A short README describing:
    - How to run the project.

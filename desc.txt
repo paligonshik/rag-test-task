@@ -1,0 +1,64 @@
+# Database Schema
+
+You have access to three related tables containing business invoice data:
+
+## Table 1: Clients
+Contains information about 20 business clients.
+
+Columns:
+- client_id (string, PRIMARY KEY): Unique identifier (format: C001, C002, etc.)
+- client_name (string): Company name
+- industry (string): Business sector (Manufacturing, Legal, Financial Services, Retail, Logistics, etc.)
+- country (string): Client's country location (USA, UK, Germany, Canada, etc.)
+
+## Table 2: Invoices
+Contains 40 invoices issued to clients.
+
+Columns:
+- invoice_id (string, PRIMARY KEY): Unique identifier (format: I1001, I1002, etc.)
+- client_id (string, FOREIGN KEY → Clients.client_id): References the client
+- invoice_date (date): Date invoice was issued (YYYY-MM-DD format)
+- due_date (date): Payment due date (YYYY-MM-DD format)
+- status (string): Payment status - one of ["Paid", "Overdue", "Draft"]
+- currency (string): Invoice currency (USD, EUR, etc.)
+- fx_rate_to_usd (float): Exchange rate to convert to USD
+
+## Table 3: InvoiceLineItems
+Contains 96 individual line items across all invoices.
+
+Columns:
+- line_id (string, PRIMARY KEY): Unique identifier (format: L001, L002, etc.)
+- invoice_id (string, FOREIGN KEY → Invoices.invoice_id): References the invoice
+- service_name (string): Service provided. Available services:
+  * Court Appearance
+  * M&A Advisory
+  * Tax Planning
+  * IT Security Assessment
+  * Training Session
+  * Custom Reporting
+  * Contract Review
+  * Regulatory Compliance Audit
+- quantity (integer): Number of units of service
+- unit_price (float): Price per unit in invoice currency
+- tax_rate (float): Tax rate as decimal (e.g., 0.2 = 20%, 0.1 = 10%)
+
+## Relationships
+- Clients (1) → (Many) Invoices
+- Invoices (1) → (Many) InvoiceLineItems
+
+## Important Calculation Rules
+1. **Line Item Total (with tax)**: quantity × unit_price × (1 + tax_rate)
+2. **Invoice Total**: Sum of all line item totals for that invoice_id
+3. **Client Total**: Sum of all invoice totals for that client_id
+
+## Data Integrity
+- All client_id values in Invoices exist in Clients table
+- All invoice_id values in InvoiceLineItems exist in Invoices table
+- All dates are in 2024
+- Referential integrity is maintained across all tables
+
+## Query Guidelines
+- When calculating revenue/totals, always include tax in calculations
+- Use invoice_date for date-based filtering (not due_date unless specifically asked)
+- Join tables appropriately: Client info requires Clients table, amounts require InvoiceLineItems
+- Currency conversions: multiply amounts by fx_rate_to_usd when comparing across currencies

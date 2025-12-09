@@ -1,85 +1,152 @@
-# Task: Build a Chat Over Tabular Data (RAG-style)
+# RAG Invoice Chat Agent
 
-You are given several Excel files that represent tables from a small business database:
+A RAG-style question-answering system that answers natural language questions about invoice data using OpenAI and pandas.
 
-- `Clients.xlsx` – information about clients
-- `Invoices.xlsx` – invoices, dates, amounts, client IDs
-- `InvoiceLineItems.xlsx` – line items for each invoice (service, quantity, rate, tax, etc.)
+## Quick Start
 
-Your task is to build a question-answering chat that can answer natural-language questions about this data by:
+### 1. Install Dependencies
 
-1. Understanding the user's question.
-2. Retrieving the relevant rows/records from the tables.
-3. Using an LLM to generate a grounded answer based on those records.
+```bash
+uv sync
+```
 
-You may assume all data fits in memory (no need for complex scaling).
+```
+pip install -e .
+```
 
-## Examples of Questions the Chat Should Handle
+### 2. Set OpenAI API Key
 
-*(You don't have to hard-code exact answers, but your system should be able to answer questions of this type.)*
+```bash
+export OPENAI_API_KEY=your-api-key-here
+```
 
-- List all clients with their industries.
-- Which clients are based in the UK?
-- List all invoices issued in March 2024 with their statuses.
-- Which invoices are currently marked as "Overdue"?
-- For each service_name in InvoiceLineItems, how many line items are there?
-- List all invoices for Acme Corp with their invoice IDs, invoice dates, due dates, and statuses.
-- Show all invoices issued to Bright Legal in February 2024, including their status and currency.
-- For invoice I1001, list all line items with service name, quantity, unit price, tax rate, and compute the line total (including tax) for each.
-- For each client, compute the total amount billed in 2024 (including tax) across all their invoices.
-- Which client has the highest total billed amount in 2024, and what is that total?
+Or create a `.env` file in the project root:
+```
+OPENAI_API_KEY=your-api-key-here
+```
 
-*(Optional/extra questions)*
-- Across all clients, which three services generated the most revenue in 2024? Show the total revenue per service.
-- Which invoices are overdue as of 2024-12-31? List invoice ID, client name, invoice_date, due_date, and status.
-- Group revenue by client country: for each country, compute the total billed amount in 2024 (including tax).
-- For the service “Contract Review”, list all clients who purchased it and the total amount they paid for that service (including tax).
-- Considering only European clients, what are the top 3 services by total revenue (including tax) in H2 2024 (2024-07-01 to 2024-12-31)?
+### 3. Run the Streamlit UI
 
-## Requirements
+```bash
+uv run streamlit run app.py
+```
 
-### Architecture
+### 4. Run Tests (Generate Results Table)
 
-Implement a RAG-style pipeline where:
+```bash
+uv run python test_agent.py
+```
 
-1. The system maps the user's question to some structured retrieval/code over the tables
-2. Retrieves relevant data (rows, aggregates, or both)
-3. Feeds that context to an LLM to generate the final answer.
+This will generate `TEST_RESULTS.md` with answers to all example questions.
 
-### LLM Usage
+## Architecture
 
-- You may use any LLM (open-source or API-based).
-- Unfortunately, we are not providing api key for the test task, but you can use https://console.groq.com/. There is a free plan, and some models are available for API requests.
-- The LLM should **not hallucinate numbers**; all numeric answers must come from actual data you've retrieved.
+```
+User Question
+     │
+     ▼
+┌─────────────────────────────────────┐
+│  OpenAI GPT-4o-mini                 │
+│  (Code Generation)                  │
+│  Prompt: Question + Schema → Code   │
+└─────────────────────────────────────┘
+     │ pandas code
+     ▼
+┌─────────────────────────────────────┐
+│  Code Executor                      │
+│  (Sandboxed pandas execution)       │
+│  Input: code + DataFrames           │
+│  Output: query results              │
+└─────────────────────────────────────┘
+     │ data results
+     ▼
+┌─────────────────────────────────────┐
+│  OpenAI GPT-4o-mini                 │
+│  (Response Formatting)              │
+│  Prompt: Question + Data → Answer   │
+└─────────────────────────────────────┘
+     │
+     ▼
+Natural Language Answer
+```
 
-### Interface *(OPTIONAL)*
+## Project Structure
 
-A simple interface is enough:
+```
+├── app.py                      # Streamlit UI
+├── test_agent.py               # Test script for all questions
+├── data/                       # Excel data files
+│   ├── Clients.xlsx
+│   ├── Invoices.xlsx
+│   └── InvoiceLineItems.xlsx
+└── src/
+    ├── agent/
+    │   └── chat_agent.py       # Main orchestrator
+    ├── dataloaders/
+    │   └── excel_loader.py     # Data loading
+    ├── llm/
+    │   ├── client.py           # OpenAI wrapper
+    │   └── prompt.py           # System prompts with schema
+    └── tools/
+        └── code_executor.py    # Safe code execution
+```
 
-- CLI, Jupyter notebook, or a minimal web UI (e.g. Streamlit / Gradio ).
+## Key Design Decisions
 
-### Time Budget
+### 1. Code Generation over Direct Answering
 
-Please spend no more than **5 hours** on this task.
+Instead of asking the LLM to answer questions directly, we have it generate pandas code. This ensures:
+- All numbers come from actual data execution
+- No hallucination of values
+- Transparent, auditable query logic
 
-If you don't fully complete all ideas, that's OK. Focus on building a clear, working core and documenting trade-offs.
+### 2. Schema-Aware Prompting
 
-## Deliverables
+The system prompt includes complete schema information:
+- Table structures with column names and types
+- Foreign key relationships
+- Pre-computed calculation formulas
+- Query guidelines for common operations
 
-1. Create a fork of this repo and push your solution with all required artefacts. Send the link to your repo to our recruiter.
+### 3. Pre-merged DataFrame
 
-2. A short README describing:
-   - How to run the project.
-   - High-level architecture/design.
-   - Assumptions and limitations.
+For complex queries, we provide a pre-joined `merged` DataFrame that:
+- Joins all three tables (clients, invoices, line_items)
+- Pre-computes `line_total = quantity × unit_price × (1 + tax_rate)`
+- Simplifies code generation for aggregation queries
 
-3. Test Results Table with two columns in the root directory. Two columns:
-    - Question from the list above
-    - Answer (provided by the pipeline)
+### 4. Sandboxed Execution
 
-## What We Will Look At
+The code executor:
+- Restricts available built-in functions
+- Only exposes pandas and numpy
+- Catches and reports execution errors gracefully
 
-- How do you structure the RAG pipeline (retrieval + generation)?
-- How do you mitigate hallucinations / wrong numbers?
-- Code clarity and organization.
-- How do you document assumptions and limitations?
+## Hallucination Mitigation
+
+1. **No direct number generation**: LLM generates code, not answers
+2. **Schema grounding**: Complete schema in every prompt
+3. **Execution-based values**: All numbers come from pandas operations
+4. **Transparency**: UI shows generated code and raw results
+
+## Assumptions & Limitations
+
+### Assumptions
+
+1. All data fits in memory
+2. OpenAI API is available (GPT-5.1)
+
+### Limitations
+
+1. **No multi-turn context**: Each question is independent (no conversation memory for queries)
+2. **Single-shot code generation**: No retry with error context
+3. **No currency normalization**: Calculations don't auto-convert to USD unless explicitly asked
+4. **Simple error handling**: Failed queries return error message, no sophisticated fallback
+
+### Potential Improvements
+
+1. Add conversation memory for follow-up questions
+2. Implement retry with error feedback to LLM
+3. Add query caching for repeated questions
+5. Add data validation and schema enforcement
+

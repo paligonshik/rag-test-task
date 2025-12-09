@@ -90,7 +90,7 @@ with st.sidebar:
     st.markdown(
         """
     This agent uses:
-    - **OpenAI GPT-4o-mini** for code generation
+    - **OpenAI GPT-5.1** for code generation
     - **Pandas** for data querying
     - **Streamlit** for the UI
 

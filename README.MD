@@ -46,7 +46,7 @@ User Question
      │
      ▼
 ┌─────────────────────────────────────┐
-│  OpenAI GPT-4o-mini                 │
+│  OpenAI GPT-5.1      │
 │  (Code Generation)                  │
 │  Prompt: Question + Schema → Code   │
 └─────────────────────────────────────┘
@@ -61,7 +61,7 @@ User Question
      │ data results
      ▼
 ┌─────────────────────────────────────┐
-│  OpenAI GPT-4o-mini                 │
+│  OpenAI GPT-5.1                │
 │  (Response Formatting)              │
 │  Prompt: Question + Data → Answer   │
 └─────────────────────────────────────┘

@@ -34,7 +34,7 @@ uv run streamlit run app.py
 ### 4. Run Tests (Generate Results Table)
 
 ```bash
-uv run python test_agent.py
+uv run python test_agent.py 
 ```
 
 This will generate `TEST_RESULTS.md` with answers to all example questions.

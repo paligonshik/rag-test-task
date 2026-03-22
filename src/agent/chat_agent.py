@@ -3,11 +3,12 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.dataloaders.excel_loader import DataContext, load_data
+from src.config.settings import get_settings
+from src.dataloaders.excel_loader import load_data
 from src.llm.client import OpenAIClient
 from src.tools.code_executor import CodeExecutor, ExecutionResult
-from src.config.settings import get_settings
-settings = get_settings()
+
+
 @dataclass
 class ChatResponse:
     """Response from the chat agent."""
@@ -23,15 +24,17 @@ class ChatAgent:
 
     def __init__(
         self,
-        data_dir: str | Path = "data",
+        data_dir: str | Path | None = None,
         openai_api_key: str | None = None,
-        model: str = settings.model,
+        model: str | None = None,
     ) -> None:
+        settings = get_settings()
+
         # Load data
-        self.data_context = load_data(settings.data_dir)
+        self.data_context = load_data(data_dir or settings.data_dir)
 
         # Initialize LLM client
-        self.llm_client = OpenAIClient(api_key=openai_api_key, model=model)
+        self.llm_client = OpenAIClient(api_key=openai_api_key, model=model or settings.model)
 
         # Initialize code executor with loaded dataframes
         self.executor = CodeExecutor(self.data_context.get_dataframes_dict())
@@ -84,7 +87,7 @@ class ChatAgent:
         """
         last_response = None
 
-        for attempt in range(max_retries + 1):
+        for _ in range(max_retries + 1):
             response = self.ask(question)
 
             if response.execution_result.success:

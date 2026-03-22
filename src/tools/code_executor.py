@@ -5,6 +5,8 @@ from typing import Any
 
 import pandas as pd
 
+MAX_RESULT_ROWS = 50
+
 
 @dataclass
 class ExecutionResult:
@@ -24,10 +26,10 @@ class ExecutionResult:
             if len(self.result) == 0:
                 return "No results found (empty DataFrame)"
             # Limit output for very large results
-            if len(self.result) > 50:
+            if len(self.result) > MAX_RESULT_ROWS:
                 return (
                     f"DataFrame with {len(self.result)} rows. "
-                    f"First 50 rows:\n{self.result.head(50).to_string()}"
+                    f"First {MAX_RESULT_ROWS} rows:\n{self.result.head(MAX_RESULT_ROWS).to_string()}"
                 )
             return self.result.to_string()
 
@@ -97,6 +99,9 @@ class CodeExecutor:
         exec_locals: dict[str, Any] = dict(self.dataframes)
 
         try:
+            # Validate syntax before execution for clearer error messages
+            compile(code, "<generated>", "exec")
+
             # Execute the code
             exec(code, exec_globals, exec_locals)  # noqa: S102
 

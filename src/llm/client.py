@@ -2,10 +2,10 @@
 
 import re
 from dataclasses import dataclass
-from src.config.settings import get_settings
-settings = get_settings()
+
 from openai import OpenAI
 
+from src.config.settings import get_settings
 from src.llm.prompt import (
     CODE_GENERATION_SYSTEM_PROMPT,
     RESPONSE_FORMATTING_SYSTEM_PROMPT,
@@ -29,16 +29,18 @@ class OpenAIClient:
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = settings.model,
+        model: str | None = None,
     ) -> None:
         """Initialize the OpenAI client.
 
         Args:
             api_key: OpenAI API key. If None, uses OPENAI_API_KEY env var.
-            model: Model to use for completions.
+            model: Model to use for completions. If None, uses settings default.
         """
+        settings = get_settings()
         self.client = OpenAI(api_key=api_key)
-        self.model = model
+        self.model = model or settings.model
+        self._settings = settings
 
     def generate_query_code(self, question: str) -> LLMResponse:
         """Generate pandas code to answer a question.
@@ -55,8 +57,8 @@ class OpenAIClient:
                 {"role": "system", "content": CODE_GENERATION_SYSTEM_PROMPT},
                 {"role": "user", "content": get_code_generation_prompt(question)},
             ],
-            temperature=0,  # Deterministic for code generation
-            max_completion_tokens=settings.max_completion_tokens,
+            temperature=self._settings.temperature,
+            max_completion_tokens=self._settings.max_completion_tokens,
         )
 
         content = response.choices[0].message.content or ""
@@ -94,8 +96,8 @@ class OpenAIClient:
                     "content": get_response_formatting_prompt(question, data_result),
                 },
             ],
-            temperature=settings.temperature,  # Slight creativity for natural language
-            max_completion_tokens=settings.max_completion_tokens,
+            temperature=self._settings.temperature,
+            max_completion_tokens=self._settings.max_completion_tokens,
         )
 
         return LLMResponse(

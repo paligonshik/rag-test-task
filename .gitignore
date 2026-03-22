@@ -6,5 +6,5 @@ __pycache__/
 .venv/
 .vscode/
 .idea/
-.pytest_cache/
-.pytest_cache/
+*.egg-info/
+TEST_RESULTS.md
